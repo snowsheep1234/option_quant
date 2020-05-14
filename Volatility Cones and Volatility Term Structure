@@ -1,0 +1,59 @@
+from WindPy import *
+from datetime import datetime
+from datetime import timedelta
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+#from pylab import plt,mpl
+
+plt.style.use('seaborn')
+mpl.rcParams['font.family']='serif'
+w.start()
+print('\n\n'+'------下载市场数据-------'+'\n')
+today=datetime.now()
+d = timedelta(days=-1500)
+lastyear=today+d
+
+data=w.wsd("510050.SH", "close", lastyear.strftime('%Y-%m-%d'),today.strftime('%Y-%m-%d'), "Fill=Previous")
+fm=pd.DataFrame(data.Data,index=data.Fields,columns=data.Times)#pandas timeseries type#data=pd.DataFrame(data)
+dat=fm.T
+dat['rets']=np.log(dat/dat.shift(1))
+dat['vol5']=dat['rets'].rolling(5).std()*np.sqrt(252)
+dat['vol15']=dat['rets'].rolling(15).std()*np.sqrt(252)
+dat['vol30']=dat['rets'].rolling(30).std()*np.sqrt(252)
+dat['vol50']=dat['rets'].rolling(50).std()*np.sqrt(252)
+dat['vol70']=dat['rets'].rolling(70).std()*np.sqrt(252)
+dat['vol90']=dat['rets'].rolling(90).std()*np.sqrt(252)
+dat['vol120']=dat['rets'].rolling(120).std()*np.sqrt(252)
+dat['vol150']=dat['rets'].rolling(150).std()*np.sqrt(252)
+#dat[['CLOSE','vol150']].plot(subplots=True,figsize=(10,6))
+
+def pert(x):
+    a1=np.nanpercentile(x,0)
+    a2=np.nanpercentile(x,25)
+    a3=np.nanpercentile(x,50)
+    a4=np.nanpercentile(x,75)
+    a5=np.nanpercentile(x,100)
+    return (a1,a2,a3,a4,a5)
+
+per1=pert(dat['vol5'])
+vol_cone={'vol5':pert(dat['vol5']), 'vol15':pert(dat['vol15']),'vol30':pert(dat['vol30']),'vol50':pert(dat['vol50']),
+                      'vol70':pert(dat['vol70']),'vol90':pert(dat['vol90']),'vol120':pert(dat['vol120']),'vol150':pert(dat['vol150'])}
+vol_cone_df = pd.DataFrame(vol_cone)
+vol_cone=vol_cone_df.T    
+vol_cone.columns=['min','25','50','75','max']
+vol_cone.index=[5,15,30,50,70,90,120,150]
+print(vol_cone)
+
+
+print('\n\n'+'------参数输入-------'+'\n')
+IV={'IV':[0.1574,0.1715,0.1825,0.1896]}
+IV=pd.DataFrame(IV)
+IV.index=[11,31,94,153]
+IV=pd.DataFrame(IV)
+
+vol_cone.plot()
+plt.plot(IV,linestyle='--',marker='o',lw=2,label="Implied Volatility")
+plt.legend()
+plt.title('Volatility Cones and Volatility Term Structure')
+plt.savefig("C:\\Users\\Xue\\Desktop\\Day_Vol\\"+today.strftime('%Y-%m-%d')+" Vol Cone.jpg")
